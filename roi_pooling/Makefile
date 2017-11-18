@@ -1,18 +1,19 @@
-TF_INC = $(shell python -c 'import tensorflow as tf; print(tf.sysconfig.get_include())')
+TF_INC = $(shell python3 -c 'import tensorflow as tf; print(tf.sysconfig.get_include())')
 CUDA_LIB = /usr/local/cuda-8.0/targets/x86_64-linux/lib/
+TF_LIB = $(shell python3 -c 'import tensorflow as tf; print(tf.sysconfig.get_lib())')
 
 all: clean build test
 
 build: roi_pooling.so
 
 roi_pooling.cu.o: roi_pooling.cu.cc
-	nvcc -std=c++11 -c -o $@ $? -I $(TF_INC) -D GOOGLE_CUDA=1 -x cu -Xcompiler -fPIC -D _GLIBCXX_USE_CXX11_ABI=0
+	nvcc -std=c++11 -c -o $@ $? -I $(TF_INC) -D GOOGLE_CUDA=1 -x cu -Xcompiler -fPIC -D _GLIBCXX_USE_CXX11_ABI=0 -arch=sm_61 
 
 roi_pooling.so: roi_pooling.cc roi_pooling.cu.o
-	g++ -std=c++11 -shared -o $@ $? -I $(TF_INC) -fPIC -lcudart -L$(CUDA_LIB) -D _GLIBCXX_USE_CXX11_ABI=0
+	g++ -std=c++11 -shared -o $@ $? -I $(TF_INC) -fPIC -lcudart -L$(CUDA_LIB) -D _GLIBCXX_USE_CXX11_ABI=0 -L$(TF_LIB) -ltensorflow_framework
 
 test: build
-	python roi_pooling_test.py
+	python3 roi_pooling_test.py
 
 clean:
 	rm -f *.o *.so *.pyc *.npy
